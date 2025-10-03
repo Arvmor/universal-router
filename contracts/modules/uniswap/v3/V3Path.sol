@@ -20,7 +20,7 @@ library V3Path {
     /// @return tokenA The first token of the given pool
     /// @return fee The fee level of the pool
     /// @return tokenB The second token of the given pool
-    function decodeFirstPool(bytes calldata path) internal pure returns (address, uint24, address) {
+    function decodeFirstPool(bytes calldata path) internal pure returns (address, uint24, address, address) {
         return path.toPool();
     }
 

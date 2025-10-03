@@ -28,13 +28,17 @@ library BytesLib {
     /// @return token0 The address at byte 0
     /// @return fee The uint24 starting at byte 20
     /// @return token1 The address at byte 23
-    function toPool(bytes calldata _bytes) internal pure returns (address token0, uint24 fee, address token1) {
+    /// @return pool The address at byte 43
+    function toPool(
+        bytes calldata _bytes
+    ) internal pure returns (address token0, uint24 fee, address token1, address pool) {
         if (_bytes.length < Constants.V3_POP_OFFSET) revert SliceOutOfBounds();
         assembly {
             let firstWord := calldataload(_bytes.offset)
             token0 := shr(96, firstWord)
             fee := and(shr(72, firstWord), 0xffffff)
             token1 := shr(96, calldataload(add(_bytes.offset, 23)))
+            pool := shr(96, calldataload(add(_bytes.offset, 43)))
         }
     }
 

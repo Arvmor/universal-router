@@ -15,7 +15,17 @@ contract DeployBase is DeployUniversalRouter {
             poolInitCodeHash: 0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54,
             v4PoolManager: 0x498581fF718922c3f8e6A244956aF099B2652b2b,
             v3NFTPositionManager: 0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1,
-            v4PositionManager: 0x7C5f5A4bBd8fD63184577525326123B519429bDc
+            v4PositionManager: 0x7C5f5A4bBd8fD63184577525326123B519429bDc,
+            // Other Protocols
+            /// @notice Aerodrome
+            aerodromeFactory: 0x5e7BB104d84c7CB9B682AaC2F3d509f5F406809A,
+            aerodromePoolInitCodeHash: 0xffb9af9ea6d9e39da47392ecc7055277b9915b8bfc9f83f105821b7791a6ae30,
+            /// @notice Pancake
+            pancakeFactory: 0x41ff9AA7e16B8B1a8a8dc4f0eFacd93D02d071c9,
+            pancakePoolInitCodeHash: 0x6ce8eb472fa82df5469c6ab6d485f17c3ad13c8cd7af59b3d4a8026c5ce0f7e2,
+            /// @notice Sushi
+            sushiFactory: 0xc35DADB65012eC5796536bD9864eD8773aBc74C4,
+            sushiPoolInitCodeHash: 0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54
         });
 
         unsupported = 0x9E18Efb3BE848940b0C92D300504Fb08C287FE85;
