@@ -16,30 +16,27 @@ abstract contract V2SwapRouter is UniswapImmutables, Permit2Payments {
 
     function _v2Swap(address[] calldata path, address recipient, address pair) private {
         unchecked {
-            if (path.length < 2) revert V2InvalidPath();
+            if (path.length < 3) revert V2InvalidPath();
 
-            // cached to save on duplicate operations
-            (address token0,) = UniswapV2Library.sortTokens(path[0], path[1]);
-            uint256 finalPairIndex = path.length - 1;
-            uint256 penultimatePairIndex = finalPairIndex - 1;
-            for (uint256 i; i < finalPairIndex; i++) {
-                (address input, address output) = (path[i], path[i + 1]);
-                (uint256 reserve0, uint256 reserve1,) = IUniswapV2Pair(pair).getReserves();
-                (uint256 reserveInput, uint256 reserveOutput) =
-                    input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
-                uint256 amountInput = ERC20(input).balanceOf(pair) - reserveInput;
-                uint256 amountOutput = UniswapV2Library.getAmountOut(amountInput, reserveInput, reserveOutput);
-                (uint256 amount0Out, uint256 amount1Out) =
-                    input == token0 ? (uint256(0), amountOutput) : (amountOutput, uint256(0));
-                address nextPair;
-                (nextPair, token0) = i < penultimatePairIndex
-                    ? UniswapV2Library.pairAndToken0For(
-                        UNISWAP_V2_FACTORY, UNISWAP_V2_PAIR_INIT_CODE_HASH, output, path[i + 2]
-                    )
-                    : (recipient, address(0));
-                IUniswapV2Pair(pair).swap(amount0Out, amount1Out, nextPair, new bytes(0));
-                pair = nextPair;
-            }
+            // sort the tokens and sort
+            (address token0, ) = UniswapV2Library.sortTokens(path[0], path[1]);
+            (address input, address output) = (path[0], path[1]);
+
+            // get the reserves and sort
+            (uint256 reserve0, uint256 reserve1, ) = IUniswapV2Pair(pair).getReserves();
+            (uint256 reserveInput, uint256 reserveOutput) = input == token0
+                ? (reserve0, reserve1)
+                : (reserve1, reserve0);
+
+            // get the amounts and sort
+            uint256 amountInput = ERC20(input).balanceOf(pair) - reserveInput;
+            uint256 amountOutput = UniswapV2Library.getAmountOut(amountInput, reserveInput, reserveOutput);
+            (uint256 amount0Out, uint256 amount1Out) = input == token0
+                ? (uint256(0), amountOutput)
+                : (amountOutput, uint256(0));
+
+            // swap
+            IUniswapV2Pair(pair).swap(amount0Out, amount1Out, recipient, new bytes(0));
         }
     }
 
@@ -56,18 +53,15 @@ abstract contract V2SwapRouter is UniswapImmutables, Permit2Payments {
         address[] calldata path,
         address payer
     ) internal {
-        address firstPair =
-            UniswapV2Library.pairFor(UNISWAP_V2_FACTORY, UNISWAP_V2_PAIR_INIT_CODE_HASH, path[0], path[1]);
-        if (
-            amountIn != Constants.ALREADY_PAID // amountIn of 0 to signal that the pair already has the tokens
-        ) {
-            payOrPermit2Transfer(path[0], payer, firstPair, amountIn);
+        // amountIn of 0 to signal that the pair already has the tokens
+        if (amountIn != Constants.ALREADY_PAID) {
+            payOrPermit2Transfer(path[0], payer, path[2], amountIn);
         }
 
-        ERC20 tokenOut = ERC20(path[path.length - 1]);
+        ERC20 tokenOut = ERC20(path[1]);
         uint256 balanceBefore = tokenOut.balanceOf(recipient);
 
-        _v2Swap(path, recipient, firstPair);
+        _v2Swap(path, recipient, path[2]);
 
         uint256 amountOut = tokenOut.balanceOf(recipient) - balanceBefore;
         if (amountOut < amountOutMinimum) revert V2TooLittleReceived();
