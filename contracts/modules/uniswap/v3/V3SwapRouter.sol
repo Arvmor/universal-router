@@ -35,7 +35,7 @@ abstract contract V3SwapRouter is UniswapImmutables, Permit2Payments, IUniswapV3
     /// @notice Callback function for Aerodrome, Uniswap, Sushi is the same
     function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external {
         // Decode the pool
-        (address tokenIn, uint24 fee, address tokenOut, address payer) = decodePool(data);
+        (address tokenIn, address tokenOut, uint24 fee, address payer) = decodePool(data);
 
         // Verify the caller is the pool
         if (
@@ -52,7 +52,7 @@ abstract contract V3SwapRouter is UniswapImmutables, Permit2Payments, IUniswapV3
     /// @notice Callback function for Pancake V3
     function pancakeV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external {
         // Decode the pool
-        (address tokenIn, uint24 fee, address tokenOut, address payer) = decodePool(data);
+        (address tokenIn, address tokenOut, uint24 fee, address payer) = decodePool(data);
 
         // Verify the caller is the pool
         if (
@@ -67,7 +67,7 @@ abstract contract V3SwapRouter is UniswapImmutables, Permit2Payments, IUniswapV3
         bytes calldata data
     ) private view returns (address tokenIn, address tokenOut, uint24 fee, address payer) {
         // because exact output swaps are executed in reverse order, in this case tokenOut is actually tokenIn
-        (, address payer) = abi.decode(data, (bytes, address));
+        (, payer) = abi.decode(data, (bytes, address));
         bytes calldata path = data.toBytes(0);
         (tokenIn, fee, tokenOut, ) = path.decodeFirstPool();
     }

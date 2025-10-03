@@ -42,7 +42,14 @@ abstract contract DeployUniversalRouter is Script {
             poolInitCodeHash: params.poolInitCodeHash,
             v4PoolManager: mapUnsupported(params.v4PoolManager),
             v3NFTPositionManager: mapUnsupported(params.v3NFTPositionManager),
-            v4PositionManager: mapUnsupported(params.v4PositionManager)
+            v4PositionManager: mapUnsupported(params.v4PositionManager),
+            // Other Protocols
+            aerodromeFactory: mapUnsupported(params.aerodromeFactory),
+            aerodromePoolInitCodeHash: params.aerodromePoolInitCodeHash,
+            pancakeFactory: mapUnsupported(params.pancakeFactory),
+            pancakePoolInitCodeHash: params.pancakePoolInitCodeHash,
+            sushiFactory: mapUnsupported(params.sushiFactory),
+            sushiPoolInitCodeHash: params.sushiPoolInitCodeHash
         });
 
         logParams();
@@ -60,6 +67,9 @@ abstract contract DeployUniversalRouter is Script {
         console2.log('v4PoolManager:', params.v4PoolManager);
         console2.log('v3NFTPositionManager:', params.v3NFTPositionManager);
         console2.log('v4PositionManager:', params.v4PositionManager);
+        console2.log('aerodromeFactory:', params.aerodromeFactory);
+        console2.log('pancakeFactory:', params.pancakeFactory);
+        console2.log('sushiFactory:', params.sushiFactory);
     }
 
     function mapUnsupported(address protocol) internal view returns (address) {
