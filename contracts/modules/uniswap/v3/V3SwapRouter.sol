@@ -32,15 +32,55 @@ abstract contract V3SwapRouter is UniswapImmutables, Permit2Payments, IUniswapV3
     /// @dev The maximum value that can be returned from #getSqrtRatioAtTick. Equivalent to getSqrtRatioAtTick(MAX_TICK)
     uint160 internal constant MAX_SQRT_RATIO = 1461446703485210103287273052203988822378723970342;
 
+    /// @notice Callback function for Aerodrome, Uniswap, Sushi is the same
     function uniswapV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external {
-        if (amount0Delta <= 0 && amount1Delta <= 0) revert V3InvalidSwap(); // swaps entirely within 0-liquidity regions are not supported
+        // Decode the pool
+        (address tokenIn, uint24 fee, address tokenOut, address payer) = decodePool(data);
+
+        // Verify the caller is the pool
+        if (
+            (computePoolAddress(tokenIn, tokenOut, fee, AERODROME_V3_FACTORY, AERODROME_V3_POOL_INIT_CODE_HASH) !=
+                msg.sender) &&
+            (computePoolAddress(tokenIn, tokenOut, fee, UNISWAP_V3_FACTORY, UNISWAP_V3_POOL_INIT_CODE_HASH) !=
+                msg.sender) &&
+            (computePoolAddress(tokenIn, tokenOut, fee, SUSHI_V3_FACTORY, SUSHI_V3_POOL_INIT_CODE_HASH) != msg.sender)
+        ) revert V3InvalidCaller();
+
+        _handleV3SwapCallback(tokenIn, tokenOut, amount0Delta, amount1Delta, payer);
+    }
+
+    /// @notice Callback function for Pancake V3
+    function pancakeV3SwapCallback(int256 amount0Delta, int256 amount1Delta, bytes calldata data) external {
+        // Decode the pool
+        (address tokenIn, uint24 fee, address tokenOut, address payer) = decodePool(data);
+
+        // Verify the caller is the pool
+        if (
+            computePoolAddress(tokenIn, tokenOut, fee, PANCAKE_V3_FACTORY, PANCAKE_V3_POOL_INIT_CODE_HASH) != msg.sender
+        ) revert V3InvalidCaller();
+
+        _handleV3SwapCallback(tokenIn, tokenOut, amount0Delta, amount1Delta, payer);
+    }
+
+    /// @notice Decodes the pool from the data
+    function decodePool(
+        bytes calldata data
+    ) private view returns (address tokenIn, address tokenOut, uint24 fee, address payer) {
+        // because exact output swaps are executed in reverse order, in this case tokenOut is actually tokenIn
         (, address payer) = abi.decode(data, (bytes, address));
         bytes calldata path = data.toBytes(0);
+        (tokenIn, fee, tokenOut, ) = path.decodeFirstPool();
+    }
 
-        // because exact output swaps are executed in reverse order, in this case tokenOut is actually tokenIn
-        (address tokenIn, uint24 fee, address tokenOut, ) = path.decodeFirstPool();
-
-        if (computePoolAddress(tokenIn, tokenOut, fee) != msg.sender) revert V3InvalidCaller();
+    function _handleV3SwapCallback(
+        address tokenIn,
+        address tokenOut,
+        int256 amount0Delta,
+        int256 amount1Delta,
+        address payer
+    ) private {
+        // swaps entirely within 0-liquidity regions are not supported
+        if (amount0Delta <= 0 && amount1Delta <= 0) revert V3InvalidSwap();
 
         (bool isExactInput, uint256 amountToPay) = amount0Delta > 0
             ? (tokenIn < tokenOut, uint256(amount0Delta))
@@ -134,18 +174,19 @@ abstract contract V3SwapRouter is UniswapImmutables, Permit2Payments, IUniswapV3
         );
     }
 
-    function computePoolAddress(address tokenA, address tokenB, uint24 fee) private view returns (address pool) {
+    function computePoolAddress(
+        address tokenA,
+        address tokenB,
+        uint24 fee,
+        address factory,
+        bytes32 initCodeHash
+    ) private view returns (address pool) {
         if (tokenA > tokenB) (tokenA, tokenB) = (tokenB, tokenA);
         pool = address(
             uint160(
                 uint256(
                     keccak256(
-                        abi.encodePacked(
-                            hex'ff',
-                            UNISWAP_V3_FACTORY,
-                            keccak256(abi.encode(tokenA, tokenB, fee)),
-                            UNISWAP_V3_POOL_INIT_CODE_HASH
-                        )
+                        abi.encodePacked(hex'ff', factory, keccak256(abi.encode(tokenA, tokenB, fee)), initCodeHash)
                     )
                 )
             )
